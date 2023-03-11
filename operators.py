@@ -365,27 +365,18 @@ class Main_OT_Facial_Recognition_Mapper(Operator):
             return {'CANCELLED'}
 
         if (event.type == 'TIMER'):
-            print(time.time()- self._test)
             if self._cap == None:
                 self.init_camera()
             _, image = self._cap.read()
-            # image = cv2.imread(eos_path + "/examples/data/image_0010.png")
-            # image = cv2.imread("./img.jpeg")
             if image is not None:
+                image.flags.writeable = False
                 input_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-                x = time.time()
                 results = self._face_detection.process(input_image)
-                print("Mediapipe " + str(time.time() - x))
                 if results.multi_face_landmarks:
                     landmarks_extracted = [eos.core.Landmark(str(i), [float(results.multi_face_landmarks[0].landmark[index].x * image.shape[1]), float(results.multi_face_landmarks[0].landmark[index].y * image.shape[0])]) for i, index in enumerate(self._landmark_points_68, start=1)]
-                    x = time.time()
                     image = cv2.cvtColor(image, cv2.COLOR_BGR2BGRA, 4)
-                    print("Cv2: " + str(time.time() - x))
-                    x = time.time()
                     (mesh, pose, shape_coeffs, blendshape_coeffs) = eos.fitting.fit_shape_and_pose(self._model,
-                                                                                                   landmarks_extracted, self._landmark_mapper, image.shape[1], image.shape[0], self._edge_topology, self._contour_landmarks, self._model_contour, num_iterations=2)
-                    print("Eos: " + str(time.time() - x))
-                    x = time.time()
+                                                                                                   landmarks_extracted, self._landmark_mapper, image.shape[1], image.shape[0], num_iterations=2, pca_coeffs=[], blendshape_coeffs=[], fitted_image_points=[])
                     if self._counter == 1:
                         for i in range(len(shape_coeffs)):
                             keyblock = context.active_object.data.shape_keys.key_blocks[i + 1]
@@ -405,20 +396,16 @@ class Main_OT_Facial_Recognition_Mapper(Operator):
                     translation = self._initialPosition - pose.get_translation()
                     context.active_object.location = (translation[0], -translation[1], translation[2])
                     context.active_object.keyframe_insert("location", frame=self._counter)
-                    print("Blender: " + str(time.time() - x))
                     # Incrementing the counter
                     self._counter += 1
 
                 # Displaying the image and FPS
                 currTime = time.time()
                 fps = 1 / (currTime - self._prevTime)
-                print(fps)
                 self._prevTime = currTime
-                x = time.time()
                 flipped_image = cv2.flip(image, 1)
                 cv2.putText(
                     flipped_image, f'FPS: {int(fps)}', (20, 70), cv2.FONT_HERSHEY_PLAIN, 3, (0, 0, 0), 2)
-                print("Cv2: " + str(time.time() - x))
                 cv2.imshow('Real Time Face Detection', flipped_image)
                 self._test = time.time()
         return {'PASS_THROUGH'}
@@ -454,6 +441,6 @@ class Main_OT_Facial_Recognition_Mapper(Operator):
         # self._model_contour = eos.fitting.ModelContour.load(eos_path + '/4dfm_head_v1.0_model_contours.json')
             
         wm = context.window_manager
-        self._timer = wm.event_timer_add(0.001, window=context.window)
+        self._timer = wm.event_timer_add(0, window=context.window)
         wm.modal_handler_add(self)
         return {'RUNNING_MODAL'}
