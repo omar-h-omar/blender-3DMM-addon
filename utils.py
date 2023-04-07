@@ -17,6 +17,30 @@ def load_morphable_model(model_path, blendshapes_path=""):
   
   return model
 
+def convert_landmarks(morphablemodel_with_expressions, current_mesh, landmarks, landmark_mapper):
+  # The 2D and 3D point correspondences used for the fitting:
+  vertex_indices = []  # their vertex indices
+  image_points = []  # the corresponding 2D landmark points
+  for i in range(len(landmarks)):
+      converted_name = landmark_mapper.convert(landmarks[i].name)
+      if (converted_name == None):
+          continue
+
+      if (morphablemodel_with_expressions.get_landmark_definitions()):
+          found_vertex_idx = morphablemodel_with_expressions.get_landmark_definitions(
+          ).value().find(converted_name.value())
+          if found_vertex_idx != morphablemodel_with_expressions.get_landmark_definitions().value():
+              vertex_idx = found_vertex_idx
+          else:
+              continue
+      else:
+          vertex_idx = int(converted_name)
+      vertex = (current_mesh.vertices[vertex_idx][0], current_mesh.vertices[vertex_idx][1],
+                current_mesh.vertices[vertex_idx][2], 1)
+      vertex_indices.append(vertex_idx)
+      image_points.append(landmarks[i].coordinates)
+  return vertex_indices, image_points
+
 def fit_shape_and_pose(morphablemodel_with_expressions, landmarks, landmark_mapper, image_width, image_height, pca_shape_coefficients=[]):
     num_shape_coefficients_to_fit = morphablemodel_with_expressions.get_shape_model(
     ).get_num_principal_components()

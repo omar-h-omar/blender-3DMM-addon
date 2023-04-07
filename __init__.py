@@ -15,17 +15,19 @@ bl_info = {
 }
 
 classes = (Main_PT_Panel, Animator_PT_Panel, Texture_PT_Panel, Main_OT_Install_Dependencies, Main_OT_Facial_Recognition_Mapper,
-           Main_OT_Create_Model, Main_OT_UV_Unwrap_Model, Main_OT_Extract_Texture, Main_OT_Take_Picture, File_Pickers)
+           Main_OT_Create_Model, Main_OT_UV_Unwrap_Model, Main_OT_Extract_Texture, Main_OT_Take_Picture, File_Pickers, Animation_Properties)
 
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
     Scene.file_pickers = PointerProperty(type=File_Pickers)
+    Scene.animation_properties = PointerProperty(type=Animation_Properties)
 
 def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
     del Scene.file_pickers
+    del Scene.animation_properties
 
 if __name__ == "__main__":
     try:

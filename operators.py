@@ -78,9 +78,10 @@ class Main_OT_Create_Model(Operator):
         # import csv
         # media_pipe_model = [(bpy.data.objects[2].matrix_world @ v.co) for v in bpy.data.objects[2].data.vertices]
         # sfm_model = [(bpy.data.objects[3].matrix_world @ v.co) for v in bpy.data.objects[3].data.vertices]
-        # tree = KDTree(sfm_model)
-        # # print(media_pipe_model[0])
-        # # print(media_pipe_model[:1])
+        # tree = KDTree(media_pipe_model)
+        # print(media_pipe_model[0])
+        # print(media_pipe_model[:1])
+        # print(tree.query([sfm_model[880]], k=1))
         # dist, sfm_ind = tree.query(media_pipe_model, k=1)
         # sfm_flat_ind = [item for sublist in sfm_ind for item in sublist]
         # mapping = {index: value for index, value in enumerate(sfm_flat_ind)}
@@ -91,7 +92,7 @@ class Main_OT_Create_Model(Operator):
         #     mappings.pop(distances.index(min(distances)))
         #     for m in mappings:
         #         mapping.pop(m)
-        # with open('conversion_with_no_repeats.csv', 'w', encoding='UTF8', newline='') as f:
+        # with open('4DFM_conversion_with_no_repeats.csv', 'w', encoding='UTF8', newline='') as f:
         #     writer = csv.writer(f)
         #     writer.writerows(mapping.items())
         
@@ -102,7 +103,7 @@ class Main_OT_Create_Model(Operator):
         eos_path = "/Users/omar/Desktop/Uni/Fourth Year/Project/eos"
         model_path = eos_path + "/share/sfm_shape_3448.bin"
         blendshapes_path = eos_path + "/share/expression_blendshapes_3448.bin"
-        # model_path = "/Users/omar/Desktop/Uni/Fourth Year/Project/4dfm_head_highres_v1.2_blendshapes_with_colour__reduced.bin"
+        # model_path = "/Users/omar/Desktop/Uni/Fourth Year/Project/4dfm_head_highres_v1.2_blendshapes_with_colour.bin"
 
         # Loading the model
         model = load_morphable_model(model_path, blendshapes_path)
@@ -121,11 +122,24 @@ class Main_OT_Create_Model(Operator):
         mesh.from_pydata(sample.vertices, [], sample.tvi)
         mesh.update()
         model_object = bpy.data.objects.new('model', mesh)
-        context.collection.objects.link(model_object)
 
         # Adding the shape keys
         model_object.shape_key_add(name="Basis")
         shape_coeffs_count = model.get_shape_model().get_num_principal_components()
+        blendshape_coeffs_count = len(model.get_expression_model())
+        if context.scene.animation_properties.set_number_of_coefficients:
+            if context.scene.animation_properties.number_of_shape_coefficients > shape_coeffs_count:
+                self.report({'ERROR'}, f"Number of shape coefficients cannot be greater than {shape_coeffs_count}")
+                return {'FINISHED'}
+            else:
+                shape_coeffs_count = context.scene.animation_properties.number_of_shape_coefficients
+
+            if context.scene.animation_properties.number_of_expression_coefficients > blendshape_coeffs_count:
+                self.report({'ERROR'}, f"Number of expression coefficients cannot be greater than {blendshape_coeffs_count}")
+                return {'FINISHED'}
+            else:
+                blendshape_coeffs_count = context.scene.animation_properties.number_of_expression_coefficients
+
         for i in range(shape_coeffs_count):
             shape_coeffs = np.zeros(shape_coeffs_count)
             shape_coeffs[i] = 1
@@ -140,7 +154,6 @@ class Main_OT_Create_Model(Operator):
                 sk.data[i].co = new_object.data.vertices[i].co
 
         # Adding the blendshape keys
-        blendshape_coeffs_count = len(model.get_expression_model())
         for i in range(blendshape_coeffs_count):
             blendshape_coeffs = np.zeros(len(model.get_expression_model()))
             blendshape_coeffs[i] = 1
@@ -164,6 +177,7 @@ class Main_OT_Create_Model(Operator):
             bsdf_node.inputs['Base Color'], imageNode.outputs['Color'])
         model_object.data.materials.append(material)
 
+        context.collection.objects.link(model_object)
         # Adding custom properties to the model object
         model_object['3DMM'] = True
         return {'FINISHED'}
@@ -269,7 +283,7 @@ class Main_OT_Extract_Texture(Operator):
         
         eos_path = "/Users/omar/Desktop/Uni/Fourth Year/Project/eos"
         model_path = eos_path + "/share/sfm_shape_3448.bin"
-        landmarks_mapper_path = eos_path + "/share/ibug_to_sfm.txt"
+        landmarks_mapper_path = "/Users/omar/Desktop/Uni/Fourth Year/Project/mediapipe_to_sfm.txt"
         blendshapes_path = eos_path + "/share/expression_blendshapes_3448.bin"
         
         # Checking if the paths are valid
@@ -283,9 +297,6 @@ class Main_OT_Extract_Texture(Operator):
         
         # Initializing the face detector
         mp_face_detection = mp.solutions.face_mesh
-        landmark_points_68 = [162, 234, 93, 58, 172, 136, 149, 148, 152, 377, 378, 365, 397, 288, 323, 454, 389, 71, 63, 105, 66, 107, 336,
-                              296, 334, 293, 301, 168, 197, 5, 4, 75, 97, 2, 326, 305, 33, 160, 158, 133, 153, 144, 362, 385, 387, 263, 373,
-                              380, 61, 39, 37, 0, 267, 269, 291, 405, 314, 17, 84, 181, 78, 82, 13, 312, 308, 317, 14, 87]
         face_detection = mp_face_detection.FaceMesh(
             min_detection_confidence=0.5, max_num_faces=1, refine_landmarks=True)
         
@@ -296,17 +307,9 @@ class Main_OT_Extract_Texture(Operator):
         # Detecting the face and extracting the landmarks
         results = face_detection.process(landmark_image)
         if results.multi_face_landmarks:
-            for face_landmarks in results.multi_face_landmarks:
-                landmarks_extracted = []
-                i = 1
-                for index in landmark_points_68:
-                    x = face_landmarks.landmark[index].x * \
-                        landmark_image.shape[1]
-                    y = face_landmarks.landmark[index].y * \
-                        landmark_image.shape[0]
-                    landmarks_extracted.append(
-                        eos.core.Landmark(str(i), [float(x), float(y)]))
-                    i += 1
+            landmarks_extracted = []
+            for i in range(468):
+                    landmarks_extracted.append(eos.core.Landmark(str(i + 1), [float(results.multi_face_landmarks[0].landmark[i].x * image.shape[1]), float(results.multi_face_landmarks[0].landmark[i].y * image.shape[0])]))
         else:
             self.report({'ERROR'}, "No face detected in the image")
             return {'CANCELLED'}
@@ -336,18 +339,20 @@ class Main_OT_Facial_Recognition_Mapper(Operator):
 
     _model = None
     _landmark_mapper = None
-    _edge_topology = None
-    _contour_landmarks = None
-    _model_contour = None
+    _shape_coeffs_count = None
+    _blendshape_coeffs_count = None
     _landmark_points_68 = [162, 234, 93, 58, 172, 136, 149, 148, 152, 377, 378, 365, 397, 288, 323, 454, 389, 71, 63, 105, 66, 107, 336,
                            296, 334, 293, 301, 168, 197, 5, 4, 75, 97, 2, 326, 305, 33, 160, 158, 133, 153, 144, 362, 385, 387, 263, 373,
                            380, 61, 39, 37, 0, 267, 269, 291, 405, 314, 17, 84, 181, 78, 82, 13, 312, 308, 317, 14, 87]
     _face_detection = mp.solutions.face_mesh.FaceMesh(
         min_detection_confidence=0.5, max_num_faces=1, refine_landmarks=False)
-    _test = 0
+    _shape_coeffs = None
 
-    def init_camera(self):
-        self._cap = cv2.VideoCapture(0)
+    def init_camera(self, context):
+        if context.scene.file_pickers.video_path:
+            self._cap = cv2.VideoCapture(context.scene.file_pickers.video_path)
+        else:
+            self._cap = cv2.VideoCapture(0)
         self._cap.set(cv2.CAP_PROP_FRAME_WIDTH, 500)
         self._cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 500)
         self._cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
@@ -366,25 +371,33 @@ class Main_OT_Facial_Recognition_Mapper(Operator):
 
         if (event.type == 'TIMER'):
             if self._cap == None:
-                self.init_camera()
+                self.init_camera(context)
             _, image = self._cap.read()
             if image is not None:
                 image.flags.writeable = False
                 input_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
                 results = self._face_detection.process(input_image)
                 if results.multi_face_landmarks:
-                    landmarks_extracted = [eos.core.Landmark(str(i), [float(results.multi_face_landmarks[0].landmark[index].x * image.shape[1]), float(results.multi_face_landmarks[0].landmark[index].y * image.shape[0])]) for i, index in enumerate(self._landmark_points_68, start=1)]
-                    image = cv2.cvtColor(image, cv2.COLOR_BGR2BGRA, 4)
-                    (mesh, pose, shape_coeffs, blendshape_coeffs) = eos.fitting.fit_shape_and_pose(self._model,
-                                                                                                   landmarks_extracted, self._landmark_mapper, image.shape[1], image.shape[0], num_iterations=2, pca_coeffs=[], blendshape_coeffs=[], fitted_image_points=[])
+                    # landmarks_extracted = [eos.core.Landmark(str(i), [float(results.multi_face_landmarks[0].landmark[index].x * image.shape[1]), float(results.multi_face_landmarks[0].landmark[index].y * image.shape[0])]) for i, index in enumerate(self._landmark_points_68, start=1)]
+                    landmarks_extracted = []
+                    for i in range(468):
+                        landmarks_extracted.append(eos.core.Landmark(str(i + 1), [float(results.multi_face_landmarks[0].landmark[i].x * image.shape[1]), float(results.multi_face_landmarks[0].landmark[i].y * image.shape[0])]))
+                    
+                    if self._shape_coeffs is None:
+                      (mesh, pose, shape_coeffs, blendshape_coeffs) = eos.fitting.fit_shape_and_pose(self._model,
+                                                                                                   landmarks_extracted, self._landmark_mapper, image.shape[1], image.shape[0], num_iterations=context.scene.animation_properties.fitting_iterations, num_shape_coefficients_to_fit=self._shape_coeffs_count, num_expression_coefficients_to_fit=self._blendshape_coeffs_count)
+                      self._shape_coeffs = shape_coeffs
+                    else:
+                      (mesh, pose, shape_coeffs, blendshape_coeffs) = eos.fitting.fit_shape_and_pose(self._model,
+                                                                                                   landmarks_extracted, self._landmark_mapper, image.shape[1], image.shape[0], num_iterations=context.scene.animation_properties.fitting_iterations, pca_coeffs=self._shape_coeffs, num_shape_coefficients_to_fit=self._shape_coeffs_count, num_expression_coefficients_to_fit=self._blendshape_coeffs_count)
                     if self._counter == 1:
-                        for i in range(len(shape_coeffs)):
+                        for i in range(self._shape_coeffs_count):
                             keyblock = context.active_object.data.shape_keys.key_blocks[i + 1]
                             keyblock.value = shape_coeffs[i]
                             keyblock.keyframe_insert("value", frame=self._counter)
                         self._initialPosition = pose.get_translation()
 
-                    for i in range(len(blendshape_coeffs)):
+                    for i in range(self._blendshape_coeffs_count):
                         keyblock = context.active_object.data.shape_keys.key_blocks[len(shape_coeffs) + i + 1]
                         keyblock.value = blendshape_coeffs[i]
                         keyblock.keyframe_insert("value", frame=self._counter)
@@ -407,7 +420,6 @@ class Main_OT_Facial_Recognition_Mapper(Operator):
                 cv2.putText(
                     flipped_image, f'FPS: {int(fps)}', (20, 70), cv2.FONT_HERSHEY_PLAIN, 3, (0, 0, 0), 2)
                 cv2.imshow('Real Time Face Detection', flipped_image)
-                self._test = time.time()
         return {'PASS_THROUGH'}
 
     def execute(self, context):
@@ -415,31 +427,28 @@ class Main_OT_Facial_Recognition_Mapper(Operator):
         model_path = context.scene.file_pickers.model_path
         blendshapes_path = context.scene.file_pickers.blendshapes_path
         landmarks_mapper_path = context.scene.file_pickers.landmarks_mapper_path
-        edge_topology_path = context.scene.file_pickers.edge_topology_path
-        contour_landmarks_mapper_path = context.scene.file_pickers.contour_landmarks_mapper_path
-        model_contour_path = context.scene.file_pickers.model_contour_path
 
         eos_path = "/Users/omar/Desktop/Uni/Fourth Year/Project/eos"
         model_path = eos_path + "/share/sfm_shape_3448.bin"
         blendshapes_path = eos_path + "/share/expression_blendshapes_3448.bin"
-        landmarks_mapper_path = eos_path + "/share/ibug_to_sfm.txt"
-        edge_topology_path = eos_path + "/share/sfm_3448_edge_topology.json"
-        contour_landmarks_mapper_path = eos_path + "/share/ibug_to_sfm.txt"
-        model_contour_path = eos_path + '/share/sfm_model_contours.json'
+        # landmarks_mapper_path = eos_path + "/share/ibug_to_sfm.txt"
+        landmarks_mapper_path = "/Users/omar/Desktop/Uni/Fourth Year/Project/mediapipe_to_sfm.txt"
         
         self._model = load_morphable_model(model_path, blendshapes_path)
         self._landmark_mapper = eos.core.LandmarkMapper(landmarks_mapper_path)
-        self._edge_topology = eos.morphablemodel.load_edge_topology(edge_topology_path)
-        self._contour_landmarks = eos.fitting.ContourLandmarks.load(contour_landmarks_mapper_path)
-        self._model_contour = eos.fitting.ModelContour.load(model_contour_path)
+        if context.scene.animation_properties.set_number_of_coefficients:
+            self._shape_coeffs_count = context.scene.animation_properties.number_of_shape_coefficients
+            self._blendshape_coeffs_count = context.scene.animation_properties.number_of_expression_coefficients
+        else:
+            self._shape_coeffs_count = self._model.get_shape_model().get_num_principal_components()
+            self._blendshape_coeffs_count = len(self._model.get_expression_model())
         
         # 4DFM
         # eos_path = "/Users/omar/Desktop/Uni/Fourth Year/Project/4DFM"
+        # self._model = load_morphable_model("/Users/omar/Desktop/Uni/Fourth Year/Project/4dfm_head_highres_v1.2_blendshapes_with_colour.bin")
         # self._landmark_mapper = eos.core.LandmarkMapper(eos_path + '/ibug68_landmark_mappings.txt')
-        # self._edge_topology = eos.morphablemodel.load_edge_topology(eos_path + '/4dfm_head_highres_v1.0_edge_topology.json')
-        # self._contour_landmarks = eos.fitting.ContourLandmarks.load(eos_path + '/ibug68_landmark_mappings.txt')
-        # self._model_contour = eos.fitting.ModelContour.load(eos_path + '/4dfm_head_v1.0_model_contours.json')
-            
+        # self._landmark_mapper = eos.core.LandmarkMapper(eos_path + '/mediapipe_to_4dfm.txt')
+
         wm = context.window_manager
         self._timer = wm.event_timer_add(0, window=context.window)
         wm.modal_handler_add(self)

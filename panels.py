@@ -37,6 +37,13 @@ class Main_PT_Panel(Panel):
                      "model_path", text="Path to Model")
             box.prop(context.scene.file_pickers,
                      "blendshapes_path", text="Path to Blendshapes")
+            box.prop(context.scene.animation_properties,
+                "set_number_of_coefficients", text="Set number of coefficients")
+            if (context.scene.animation_properties.set_number_of_coefficients):
+                box.prop(context.scene.animation_properties,
+                    "number_of_shape_coefficients", text="Number of Shape Coefficients")
+                box.prop(context.scene.animation_properties,
+                    "number_of_expression_coefficients", text="Number of Expression Coefficients")
             col.operator("main.create_model", text="Create Model")
 
 class Texture_PT_Panel(Panel):
@@ -82,13 +89,15 @@ class Animator_PT_Panel(Panel):
         row = layout.row()
         col = row.column()
         box = col.box()
+        box.label(
+            text="Provide a pre-recorded video or use the webcam to animate the 3DMM.")
+        box.label(
+            text="If you want to use the webcam, make sure to leave the video path empty.")
+        box.prop(context.scene.file_pickers,
+                 "video_path", text="Path to pre-recorded video")
         box.prop(context.scene.file_pickers,
                  "landmarks_mapper_path", text="Path to Landmarks Mapper")
-        box.prop(context.scene.file_pickers,
-                 "edge_topology_path", text="Path to Edge Topology")
-        box.prop(context.scene.file_pickers,
-                 "model_contour_path", text="Path to Model Contour")
-        box.prop(context.scene.file_pickers,
-                 "contour_landmarks_mapper_path", text="Path to Contour Landmarks Mapper")
+        box.prop(context.scene.animation_properties,
+                 "fitting_iterations", text="Fitting Iterations")
         col.operator("main.facial_recognition_mapper",
-                     text="Start Real-Time Facial Animation")
+                    text="Start Real-Time Facial Animation")

@@ -1,4 +1,4 @@
-from bpy.props import StringProperty
+from bpy.props import StringProperty, IntProperty, BoolProperty
 from bpy.types import PropertyGroup
 
 class File_Pickers(PropertyGroup):
@@ -14,9 +14,15 @@ class File_Pickers(PropertyGroup):
         name="Path to Texture Image", description="The path to the image where texture will be extracted from", subtype='FILE_PATH')
     landmarks_mapper_path: StringProperty(
         name="Path to Landmarks Mapper", description="The path to the landmarks mapper", subtype='FILE_PATH')
-    edge_topology_path: StringProperty(
-        name="Path to Edge Topology", description="The path to the model's edge topology", subtype='FILE_PATH')
-    model_contour_path: StringProperty(
-        name="Path to the Model Contour", description="The path to the model contour", subtype='FILE_PATH')
-    contour_landmarks_mapper_path: StringProperty(
-        name="Path to Contour Landmarks Mapper", description="The path to the contour landmarks mapper", subtype='FILE_PATH')
+    video_path: StringProperty(
+        name="Path to Pre-recorded video", description="The path to a pre-recorded video for animation", subtype='FILE_PATH')
+
+class Animation_Properties(PropertyGroup):
+    fitting_iterations: IntProperty(
+        name="Fitting Iterations", description="The number of iterations for the fitting process", default=5, min=1, max=300)
+    set_number_of_coefficients: BoolProperty(
+        name="Set number of coefficients", description="Set the number of shape and expression coefficients of the model", default=False)
+    number_of_shape_coefficients: IntProperty(
+        name="Number of Shape Coefficients to use", description="The number of shape coefficients to use", default=1, min=1)
+    number_of_expression_coefficients: IntProperty(
+        name="Number of Expression Coefficients to use", description="The number of expression coefficients to use", default=1, min=1)
