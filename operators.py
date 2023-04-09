@@ -42,8 +42,8 @@ class Main_OT_Install_Dependencies(Operator):
             # renaming the wheel
             import os
             os.environ["PYTHONNOUSERSITE"] = "1"
-            os.rename(eos_path + '/dist/eos_py-1.3.0-cp310-cp310-any.whl',
-                      eos_path + '/dist/eos_py-1.3.0-cp310-none-any.whl')
+            os.rename(eos_path + '/dist/eos_py-1.4.0.post0-cp310-cp310-any.whl',
+                      eos_path + '/dist/eos_py-1.4.0.post0-cp310-none-any.whl')
 
             # Upgrading pip and Installing eos-py wheel, openCV, cmake and mediapipe
             subprocess.call([sys.executable, "-m", "pip",
@@ -397,7 +397,7 @@ class Main_OT_Facial_Recognition_Mapper(Operator):
                             keyblock.keyframe_insert("value", frame=self._counter)
 
                     # Animating the mesh rotation and translation
-                    rotation = pose.get_rotation_euler_angles()
+                    rotation = pose.get_rotation()
                     context.active_object.rotation_euler = (rotation[0], -rotation[1], -rotation[2])
                     context.active_object.keyframe_insert("rotation_euler", frame=self._counter)
                     translation = self._initialPosition - pose.get_translation()
