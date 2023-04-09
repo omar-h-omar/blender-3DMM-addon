@@ -8,7 +8,6 @@ try:
 except:
     install_dependencies = True
     
-    
 class Main_PT_Panel(Panel):
     bl_label = "Dependencies Installer" if install_dependencies else "Model Creator"
     bl_idname = "MAIN_PT_Panel"
@@ -37,13 +36,6 @@ class Main_PT_Panel(Panel):
                      "model_path", text="Path to Model")
             box.prop(context.scene.file_pickers,
                      "blendshapes_path", text="Path to Blendshapes")
-            box.prop(context.scene.animation_properties,
-                "set_number_of_coefficients", text="Set number of coefficients")
-            if (context.scene.animation_properties.set_number_of_coefficients):
-                box.prop(context.scene.animation_properties,
-                    "number_of_shape_coefficients", text="Number of Shape Coefficients")
-                box.prop(context.scene.animation_properties,
-                    "number_of_expression_coefficients", text="Number of Expression Coefficients")
             col.operator("main.create_model", text="Create Model")
 
 class Texture_PT_Panel(Panel):
@@ -99,5 +91,36 @@ class Animator_PT_Panel(Panel):
                  "landmarks_mapper_path", text="Path to Landmarks Mapper")
         box.prop(context.scene.animation_properties,
                  "fitting_iterations", text="Fitting Iterations")
-        col.operator("main.facial_recognition_mapper",
-                    text="Start Real-Time Facial Animation")
+        col.prop(context.scene.animation_properties,
+                "set_number_of_coefficients", text="Set number of active coefficients")
+        shape_coefficients_box = col.box()
+        if (context.scene.animation_properties.set_number_of_coefficients):
+            shape_coefficients_box.label(text="Select the shape coefficients you want to use for animation.")
+            if len(context.active_object.shape_coefficients) > 10:
+                for i in range(10):
+                    shape_coefficients_box.prop(context.active_object.shape_coefficients[i], "isEnabled", text=f"Shape PCA {i + 1}")
+                if context.scene.animation_properties.show_more_shape_coefficients:
+                    for i in range(10, len(context.active_object.shape_coefficients)):
+                        shape_coefficients_box.prop(context.active_object.shape_coefficients[i], "isEnabled", text=f"Shape PCA {i + 1}")
+                    shape_coefficients_box.operator("main.show_more_shape_coefficients", text="Show Less Shape Coefficients")
+                else:
+                    shape_coefficients_box.operator("main.show_more_shape_coefficients", text="Show More Shape Coefficients")
+            else:
+                for i in range(len(context.active_object.shape_coefficients)):
+                    shape_coefficients_box.prop(context.active_object.shape_coefficients[i], "isEnabled", text=f"Shape PCA {i + 1}")
+
+            blendshape_coefficients_box = col.box()
+            blendshape_coefficients_box.label(text="Select the blendshapes you want to use for animation.")
+            if len(context.active_object.blendshape_coefficients) > 10:
+                for i in range(10):
+                    blendshape_coefficients_box.prop(context.active_object.blendshape_coefficients[i], "isEnabled", text=f"Blendshape {i + 1}")
+                if context.scene.animation_properties.show_more_blendshape_coefficients:
+                    for i in range(10, len(context.active_object.blendshape_coefficients)):
+                        blendshape_coefficients_box.prop(context.active_object.blendshape_coefficients[i], "isEnabled", text=f"Blendshape {i + 1}")
+                    blendshape_coefficients_box.operator("main.show_more_blendshape_coefficients", text="Show Less Blendshapes")
+                else:
+                    blendshape_coefficients_box.operator("main.show_more_blendshape_coefficients", text="Show More Blendshapes")
+            else:
+                for i in range(len(context.active_object.blendshape_coefficients)):
+                    blendshape_coefficients_box.prop(context.active_object.blendshape_coefficients[i], "isEnabled", text=f"Blendshape {i + 1}")
+        col.operator("main.facial_recognition_mapper",text="Start Real-Time Facial Animation")

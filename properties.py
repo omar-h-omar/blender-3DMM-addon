@@ -22,7 +22,9 @@ class Animation_Properties(PropertyGroup):
         name="Fitting Iterations", description="The number of iterations for the fitting process", default=5, min=1, max=300)
     set_number_of_coefficients: BoolProperty(
         name="Set number of coefficients", description="Set the number of shape and expression coefficients of the model", default=False)
-    number_of_shape_coefficients: IntProperty(
-        name="Number of Shape Coefficients to use", description="The number of shape coefficients to use", default=1, min=1)
-    number_of_expression_coefficients: IntProperty(
-        name="Number of Expression Coefficients to use", description="The number of expression coefficients to use", default=1, min=1)
+    show_more_shape_coefficients: BoolProperty(default=False)
+    show_more_blendshape_coefficients: BoolProperty(default=False)
+
+class Coefficients_Collection(PropertyGroup):
+  isEnabled: BoolProperty(default=True)
+    

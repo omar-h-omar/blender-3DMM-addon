@@ -127,20 +127,10 @@ class Main_OT_Create_Model(Operator):
         model_object.shape_key_add(name="Basis")
         shape_coeffs_count = model.get_shape_model().get_num_principal_components()
         blendshape_coeffs_count = len(model.get_expression_model())
-        if context.scene.animation_properties.set_number_of_coefficients:
-            if context.scene.animation_properties.number_of_shape_coefficients > shape_coeffs_count:
-                self.report({'ERROR'}, f"Number of shape coefficients cannot be greater than {shape_coeffs_count}")
-                return {'FINISHED'}
-            else:
-                shape_coeffs_count = context.scene.animation_properties.number_of_shape_coefficients
 
-            if context.scene.animation_properties.number_of_expression_coefficients > blendshape_coeffs_count:
-                self.report({'ERROR'}, f"Number of expression coefficients cannot be greater than {blendshape_coeffs_count}")
-                return {'FINISHED'}
-            else:
-                blendshape_coeffs_count = context.scene.animation_properties.number_of_expression_coefficients
-
+        model_object.shape_coefficients.clear()
         for i in range(shape_coeffs_count):
+            model_object.shape_coefficients.add()
             shape_coeffs = np.zeros(shape_coeffs_count)
             shape_coeffs[i] = 1
             sample = model.draw_sample(shape_coeffs, [])
@@ -154,7 +144,9 @@ class Main_OT_Create_Model(Operator):
                 sk.data[i].co = new_object.data.vertices[i].co
 
         # Adding the blendshape keys
+        model_object.blendshape_coefficients.clear()
         for i in range(blendshape_coeffs_count):
+            model_object.blendshape_coefficients.add()
             blendshape_coeffs = np.zeros(len(model.get_expression_model()))
             blendshape_coeffs[i] = 1
             sample = model.draw_sample(shape_coefficients=[
@@ -339,8 +331,8 @@ class Main_OT_Facial_Recognition_Mapper(Operator):
 
     _model = None
     _landmark_mapper = None
-    _shape_coeffs_count = None
-    _blendshape_coeffs_count = None
+    _shape_coeffs_controller = None
+    _blendshape_coeffs_controller = None
     _landmark_points_68 = [162, 234, 93, 58, 172, 136, 149, 148, 152, 377, 378, 365, 397, 288, 323, 454, 389, 71, 63, 105, 66, 107, 336,
                            296, 334, 293, 301, 168, 197, 5, 4, 75, 97, 2, 326, 305, 33, 160, 158, 133, 153, 144, 362, 385, 387, 263, 373,
                            380, 61, 39, 37, 0, 267, 269, 291, 405, 314, 17, 84, 181, 78, 82, 13, 312, 308, 317, 14, 87]
@@ -385,22 +377,24 @@ class Main_OT_Facial_Recognition_Mapper(Operator):
                     
                     if self._shape_coeffs is None:
                       (mesh, pose, shape_coeffs, blendshape_coeffs) = eos.fitting.fit_shape_and_pose(self._model,
-                                                                                                   landmarks_extracted, self._landmark_mapper, image.shape[1], image.shape[0], num_iterations=context.scene.animation_properties.fitting_iterations, num_shape_coefficients_to_fit=self._shape_coeffs_count, num_expression_coefficients_to_fit=self._blendshape_coeffs_count)
+                                                                                                   landmarks_extracted, self._landmark_mapper, image.shape[1], image.shape[0], num_iterations=context.scene.animation_properties.fitting_iterations)
                       self._shape_coeffs = shape_coeffs
                     else:
                       (mesh, pose, shape_coeffs, blendshape_coeffs) = eos.fitting.fit_shape_and_pose(self._model,
-                                                                                                   landmarks_extracted, self._landmark_mapper, image.shape[1], image.shape[0], num_iterations=context.scene.animation_properties.fitting_iterations, pca_coeffs=self._shape_coeffs, num_shape_coefficients_to_fit=self._shape_coeffs_count, num_expression_coefficients_to_fit=self._blendshape_coeffs_count)
+                                                                                                   landmarks_extracted, self._landmark_mapper, image.shape[1], image.shape[0], num_iterations=context.scene.animation_properties.fitting_iterations, pca_coeffs=self._shape_coeffs)
                     if self._counter == 1:
-                        for i in range(self._shape_coeffs_count):
-                            keyblock = context.active_object.data.shape_keys.key_blocks[i + 1]
-                            keyblock.value = shape_coeffs[i]
-                            keyblock.keyframe_insert("value", frame=self._counter)
+                        for i in range(len(shape_coeffs)):
+                            if (self._shape_coeffs_controller[i] == True):
+                                keyblock = context.active_object.data.shape_keys.key_blocks[i + 1]
+                                keyblock.value = shape_coeffs[i]
+                                keyblock.keyframe_insert("value", frame=self._counter)
                         self._initialPosition = pose.get_translation()
 
-                    for i in range(self._blendshape_coeffs_count):
-                        keyblock = context.active_object.data.shape_keys.key_blocks[len(shape_coeffs) + i + 1]
-                        keyblock.value = blendshape_coeffs[i]
-                        keyblock.keyframe_insert("value", frame=self._counter)
+                    for i in range(len(blendshape_coeffs)):
+                        if (self._blendshape_coeffs_controller[i] == True):
+                            keyblock = context.active_object.data.shape_keys.key_blocks[len(shape_coeffs) + i + 1]
+                            keyblock.value = blendshape_coeffs[i]
+                            keyblock.keyframe_insert("value", frame=self._counter)
 
                     # Animating the mesh rotation and translation
                     rotation = pose.get_rotation_euler_angles()
@@ -436,13 +430,8 @@ class Main_OT_Facial_Recognition_Mapper(Operator):
         
         self._model = load_morphable_model(model_path, blendshapes_path)
         self._landmark_mapper = eos.core.LandmarkMapper(landmarks_mapper_path)
-        if context.scene.animation_properties.set_number_of_coefficients:
-            self._shape_coeffs_count = context.scene.animation_properties.number_of_shape_coefficients
-            self._blendshape_coeffs_count = context.scene.animation_properties.number_of_expression_coefficients
-        else:
-            self._shape_coeffs_count = self._model.get_shape_model().get_num_principal_components()
-            self._blendshape_coeffs_count = len(self._model.get_expression_model())
-        
+        self._shape_coeffs_controller = [i.isEnabled for i in context.active_object.shape_coefficients]
+        self._blendshape_coeffs_controller = [i.isEnabled for i in context.active_object.blendshape_coefficients]
         # 4DFM
         # eos_path = "/Users/omar/Desktop/Uni/Fourth Year/Project/4DFM"
         # self._model = load_morphable_model("/Users/omar/Desktop/Uni/Fourth Year/Project/4dfm_head_highres_v1.2_blendshapes_with_colour.bin")
@@ -453,3 +442,19 @@ class Main_OT_Facial_Recognition_Mapper(Operator):
         self._timer = wm.event_timer_add(0, window=context.window)
         wm.modal_handler_add(self)
         return {'RUNNING_MODAL'}
+
+class Main_OT_Show_More_Shape_Coefficients(Operator):
+    bl_label = "Show More Shape Coefficients"
+    bl_idname = "main.show_more_shape_coefficients"
+
+    def execute(self, context):
+        context.scene.animation_properties.show_more_shape_coefficients = not context.scene.animation_properties.show_more_shape_coefficients
+        return {'FINISHED'}
+
+class Main_OT_Show_More_Blendshape_Coefficients(Operator):
+    bl_label = "Show More Blendshape Coefficients"
+    bl_idname = "main.show_more_blendshape_coefficients"
+
+    def execute(self, context):
+        context.scene.animation_properties.show_more_blendshape_coefficients = not context.scene.animation_properties.show_more_blendshape_coefficients
+        return {'FINISHED'}
