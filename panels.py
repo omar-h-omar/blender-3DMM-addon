@@ -82,11 +82,11 @@ class Animator_PT_Panel(Panel):
         col = row.column()
         box = col.box()
         box.label(
-            text="Provide a pre-recorded video or use the webcam to animate the 3DMM.")
+            text="Provide an existing video/picture or use the webcam to animate the 3DMM.")
         box.label(
             text="If you want to use the webcam, make sure to leave the video path empty.")
         box.prop(context.scene.file_pickers,
-                 "video_path", text="Path to pre-recorded video")
+                 "video_path", text="Path to existing video/picture")
         box.prop(context.scene.file_pickers,
                  "landmarks_mapper_path", text="Path to Landmarks Mapper")
         box.prop(context.scene.animation_properties,
@@ -123,4 +123,4 @@ class Animator_PT_Panel(Panel):
             else:
                 for i in range(len(context.active_object.blendshape_coefficients)):
                     blendshape_coefficients_box.prop(context.active_object.blendshape_coefficients[i], "isEnabled", text=f"Blendshape {i + 1}")
-        col.operator("main.facial_recognition_mapper",text="Start Real-Time Facial Animation")
+        col.operator("main.facial_recognition_mapper",text="Animate Model")
