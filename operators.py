@@ -7,8 +7,6 @@ import sys
 import subprocess
 import numpy as np
 import time
-import math
-from scipy.spatial import distance
 install_dependencies = False
 try:
     import cv2
@@ -42,6 +40,9 @@ class Main_OT_Install_Dependencies(Operator):
             # renaming the wheel
             import os
             os.environ["PYTHONNOUSERSITE"] = "1"
+            
+            # Renames the wheel
+            # NOTE: This is a temporary fix for the issue of the wheel being built for a specific python version
             os.rename(eos_path + '/dist/eos_py-1.4.0.post0-cp310-cp310-any.whl',
                       eos_path + '/dist/eos_py-1.4.0.post0-cp310-none-any.whl')
 
@@ -50,7 +51,7 @@ class Main_OT_Install_Dependencies(Operator):
                              "install",  "--upgrade", "pip"])
             subprocess.call([sys.executable, "-m", "ensurepip"])
             subprocess.call([sys.executable, "-m", "pip", "install",
-                             eos_path + "/dist/eos_py-1.3.0-cp310-none-any.whl"])
+                             eos_path + "/dist/eos_py-1.4.0.post0-cp310-none-any.whl"])
             subprocess.call([sys.executable, "-m", "pip",
                              "install", "opencv-python"])
             subprocess.call([sys.executable, "-m", "pip", "install", "cmake"])
