@@ -7,10 +7,10 @@ from .properties import *
 
 bl_info = {
     "name": "3D Morphable Model Addon",
-    "author": "omar",
-    "description": "",
+    "author": "Omar Omar",
+    "description": "A Blender python plugin for 3D Morphable Face Models",
     "blender": (3, 3, 1),
-    "version": (0, 0, 1),
+    "version": (0, 1, 0),
     "category": "3D View"
 }
 
