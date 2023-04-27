@@ -93,8 +93,10 @@ class Animator_PT_Panel(Panel):
                  "fitting_iterations", text="Fitting Iterations")
         col.prop(context.scene.animation_properties,
                 "set_number_of_coefficients", text="Set number of active coefficients")
-        shape_coefficients_box = col.box()
+
+        # UI for the coefficients selection
         if (context.scene.animation_properties.set_number_of_coefficients):
+            shape_coefficients_box = col.box()
             shape_coefficients_box.label(text="Select the shape coefficients you want to use for animation.")
             if len(context.active_object.shape_coefficients) > 10:
                 for i in range(10):
