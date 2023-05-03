@@ -45,8 +45,16 @@ This panel allows you to animate your 3DMM. You can animate your Blender objects
 
 During the animation process, an extra window will appear to show you which frame is currently being animated. When a frame is animated your timeline is updated to include the new keyframe. You can stop the animation process at any point in time using the `ESC` key on your keyboard.
 
+**Note:** You can use the landmark mappers in the shared folder for the Surrey Face Mode or the 4D Face Model.
+
 #### Texture Creator Panel
 
 With this panel, you can UV unwrap your Blender objects using the UV-coordinates of the 3DMM. This panel also allows you to take a picture using a webcam or provide an existing image for texture extraction.
 
 **Note:** UV unwrapping typically takes several minutes to complete. If you're using the Surrey Face Mode or the 4D Face Model, the `UV.blend` file contains UV unwrapped blender objects of those models. To copy the UV map, select the target object and using `Shift` select the source object. Then go to Object menu -> Make Links… -> Transfer UV Layouts (Shortcut: `Ctrl-L`)
+
+### Demo
+
+https://user-images.githubusercontent.com/58376513/235868815-ce775ab4-10fc-4396-baff-d197cf19dccc.mp4
+
+
